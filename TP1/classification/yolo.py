@@ -1,5 +1,5 @@
-# USAGE
-# python yolo.py --image images/baggage_claim.jpg --yolo yolo-coco
+# SOURCE : https://www.pyimagesearch.com/2018/11/12/yolo-object-detection-with-opencv/
+
 
 # import the necessary packages
 import numpy as np
@@ -30,6 +30,8 @@ ap.add_argument("-p", "--path", required=True,
                 help="base path for the images directory")
 ap.add_argument("-f", "--frames", required=True,
                 help="frame numbers")
+ap.add_argument("-o", "--output", required=True,
+                help="Output video location.")
 ap.add_argument("-y", "--yolo", required=True,
                 help="base path to YOLO directory")
 ap.add_argument("-c", "--confidence", type=float, default=0.5,
@@ -57,6 +59,7 @@ net = cv2.dnn.readNetFromDarknet(configPath, weightsPath)
 
 # load our input image and grab its spatial dimensions
 frameNumber = int(args["frames"])
+writer = None
 for i in range(1, frameNumber):
     image = cv2.imread(args["path"] + "/in00" + getFileName(i) + ".jpg")
     clone_img = copy.copy(image)
@@ -136,6 +139,22 @@ for i in range(1, frameNumber):
             text = "{}: {:.4f}".format(LABELS[classIDs[i]], confidences[i])
             cv2.putText(clone_img, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX,
                         0.5, color, 2)
+
+    if writer is None:
+        # initialize our video writer
+        fourcc = cv2.VideoWriter_fourcc(*"MJPG")
+        writer = cv2.VideoWriter(args["output"], fourcc, 30,
+                                 (clone_img.shape[1], clone_img.shape[0]), True)
+
+        # some information on processing single frame
+        if frameNumber > 0:
+            elap = (end - start)
+            print("[INFO] single frame took {:.4f} seconds".format(elap))
+            print("[INFO] estimated total time to finish: {:.4f}".format(
+                elap * frameNumber))
+
+    # write the output frame to disk
+    writer.write(clone_img)
 
     # show the output image
     cv2.imshow("Classification image", clone_img)
