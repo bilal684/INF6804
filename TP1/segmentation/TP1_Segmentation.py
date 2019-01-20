@@ -6,11 +6,25 @@
 import numpy as np
 import cv2
 from skimage.measure import compare_ssim
+import argparse
+
+ap = argparse.ArgumentParser()
+
+ap.add_argument("-p", "--path", required=True,
+                help="base path for the images directory")
+ap.add_argument("-f", "--frames", required=True,
+                help="frame numbers")
+ap.add_argument("-g", "--groundtruth", required=True,
+                help="Ground truth path")
+#ap.add_argument("-o", "--output", required=True,
+#                help="Output video location.")
+
+args = vars(ap.parse_args())
 
 
-basePathInput = "data/highway/input"
-basePathGT = "data/highway/groundtruth"
-frameNumber = 1700
+basePathInput = args["path"]
+basePathGT = args["groundtruth"]
+frameNumber = int(args["frames"])
 
 #Source : https://www.pyimagesearch.com/2014/09/15/python-compare-two-images/
 def getMSE(imageA, imageB):

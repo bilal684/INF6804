@@ -7,7 +7,6 @@ import argparse
 import time
 import cv2
 import os
-import copy
 
 
 def getFileName(n):
@@ -23,8 +22,6 @@ def getFileName(n):
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
-# ap.add_argument("-i", "--image", required=True,
-#	help="path to input image")
 
 ap.add_argument("-p", "--path", required=True,
                 help="base path for the images directory")
@@ -62,8 +59,8 @@ frameNumber = int(args["frames"])
 writer = None
 for i in range(1, frameNumber):
     image = cv2.imread(args["path"] + "/in00" + getFileName(i) + ".jpg")
-    clone_img = copy.copy(image)
-    cv2.imshow("Original image", image)
+    #clone_img = copy.copy(image)
+    #cv2.imshow("Original image", image)
     (H, W) = image.shape[:2]
 
     # determine only the *output* layer names that we need from YOLO
@@ -135,16 +132,16 @@ for i in range(1, frameNumber):
 
             # draw a bounding box rectangle and label on the image
             color = [int(c) for c in COLORS[classIDs[i]]]
-            cv2.rectangle(clone_img, (x, y), (x + w, y + h), color, 2)
+            cv2.rectangle(image, (x, y), (x + w, y + h), color, 2)
             text = "{}: {:.4f}".format(LABELS[classIDs[i]], confidences[i])
-            cv2.putText(clone_img, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX,
+            cv2.putText(image, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX,
                         0.5, color, 2)
 
     if writer is None:
         # initialize our video writer
-        fourcc = cv2.VideoWriter_fourcc(*"MJPG")
-        writer = cv2.VideoWriter(args["output"], fourcc, 30,
-                                 (clone_img.shape[1], clone_img.shape[0]), True)
+        #fourcc = cv2.VideoWriter_fourcc(*"MJPG")
+        writer = cv2.VideoWriter(args["output"] + ".mp4", 0x00000021, 30,
+                                 (image.shape[1], image.shape[0]), True)
 
         # some information on processing single frame
         if frameNumber > 0:
@@ -153,9 +150,12 @@ for i in range(1, frameNumber):
             print("[INFO] estimated total time to finish: {:.4f}".format(
                 elap * frameNumber))
 
+    cv2.waitKey(1)
     # write the output frame to disk
-    writer.write(clone_img)
+    writer.write(image)
+print("[INFO] cleaning up...")
+writer.release()
 
     # show the output image
-    cv2.imshow("Classification image", clone_img)
-    cv2.waitKey(1)
+    #cv2.imshow("Classification image", clone_img)
+    #cv2.waitKey(1)

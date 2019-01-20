@@ -1,1 +1,1 @@
-python .\yolo.py --path data/highway/input --frames 1700 --yolo yolo-coco
+python .\yolo.py --path data/highway/input --frames 1700 --output bilal --yolo yolo-coco

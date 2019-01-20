@@ -1,0 +1,1 @@
+python .\TP1_Segmentation.py --path data/highway/input --frames 1700 --groundtruth data/highway/groundtruth
