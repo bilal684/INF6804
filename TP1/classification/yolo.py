@@ -77,6 +77,7 @@ net = cv2.dnn.readNetFromDarknet(configPath, weightsPath)
 # load our input image and grab its spatial dimensions
 frameNumber = int(args["frames"])
 writer = None
+writer_gt = None
 totalIoU = 0.0
 numberOfIntersections = 0
 maxIoU = -1
@@ -147,11 +148,13 @@ for idx in range(1, frameNumber):
     # boxes
     idxs = cv2.dnn.NMSBoxes(boxes, confidences, args["confidence"],
                             args["threshold"])
-
+    gt = cv2.imread(args["groundtruth"] + "/gt00" + getFileName(idx) + ".png", 0)
+    gt_contours, gt_hierarchy = cv2.findContours(gt, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    for cont in gt_contours:
+        x, y, w, h = cv2.boundingRect(cont)
+        cv2.rectangle(gt, (x, y), (x + w, y + h), (255, 255, 255), 5)
     # ensure at least one detection exists
     if len(idxs) > 0:
-        gt = cv2.imread(args["groundtruth"] + "/gt00" + getFileName(idx) + ".png", 0)
-        gt_contours, gt_hierarchy = cv2.findContours(gt, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         # loop over the indexes we are keeping
         for i in idxs.flatten():
             # extract the bounding box coordinates
@@ -191,11 +194,13 @@ for idx in range(1, frameNumber):
                     totalIoU += maxInHeap
                     numberOfIntersections += 1
 
-    if writer is None:
+    if writer is None and writer_gt is None:
         # initialize our video writer
         #fourcc = cv2.VideoWriter_fourcc(*"MJPG")
         writer = cv2.VideoWriter(args["output"] + ".mp4", 0x00000021, 30,
                                  (image.shape[1], image.shape[0]), True)
+        writer_gt = cv2.VideoWriter(args["output"] + "_gt" + ".mp4", 0x00000021, 30,
+                                 (gt.shape[1], gt.shape[0]), True)
 
         # some information on processing single frame
         if frameNumber > 0:
@@ -207,6 +212,7 @@ for idx in range(1, frameNumber):
     cv2.waitKey(1)
     # write the output frame to disk
     writer.write(image)
+    writer_gt.write(gt)
 print("[INFO] cleaning up...")
 average = totalIoU / float(numberOfIntersections)
 sortedIoU.sort()
@@ -222,6 +228,7 @@ print("total intersections : " + str(numberOfIntersections))
 print("min IoU :" + str(minIoU))
 print("max IoU :" + str(maxIoU))
 writer.release()
+writer_gt.release()
 
     # show the output image
     #cv2.imshow("Classification image", clone_img)
