@@ -52,6 +52,8 @@ ap.add_argument("-c", "--confidence", type=float, default=0.5,
                 help="minimum probability to filter weak detections")
 ap.add_argument("-t", "--threshold", type=float, default=0.3,
                 help="threshold when applyong non-maxima suppression")
+ap.add_argument("-s", "--skip", default="470",
+                help="skip ground truth to.")
 args = vars(ap.parse_args())
 
 # load the COCO class labels our YOLO model was trained on
@@ -159,7 +161,7 @@ for idx in range(1, frameNumber):
             text = "{}: {:.4f}".format(LABELS[classIDs[i]], confidences[i])
             cv2.putText(image, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX,
                         0.5, color, 2)
-            if idx >= 470:
+            if idx >= int(args["skip"]):
                 for gt_cont in gt_contours:
                     gt_x, gt_y, gt_w, gt_h = cv2.boundingRect(gt_cont)
                     intersect = intersection((gt_x, gt_y, gt_w, gt_h), (x, y, w, h))
