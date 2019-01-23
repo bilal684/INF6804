@@ -19,17 +19,34 @@ def getFileName(n):
     else:
         return str(n)
 
+def union(a, b):
+    x = min(a[0], b[0])
+    y = min(a[1], b[1])
+    w = max(a[0] + a[2], b[0] + b[2]) - x
+    h = max(a[1] + a[3], b[1] + b[3]) - y
+    return (x, y, w, h)
+
+def intersection(a, b):
+    x = max(a[0], b[0])
+    y = max(a[1], b[1])
+    w = min(a[0] + a[2], b[0] + b[2]) - x
+    h = min(a[1] + a[3], b[1] + b[3]) - y
+    if w < 0 or h < 0:
+        return ()
+    return (x, y, w, h)
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
 
-ap.add_argument("-p", "--path", required=True,
+ap.add_argument("-p", "--path", default="data/highway/input",
                 help="base path for the images directory")
-ap.add_argument("-f", "--frames", required=True,
+ap.add_argument("-g", "--groundtruth", default="data/highway/groundtruth",
+                help="Ground truth path")
+ap.add_argument("-f", "--frames", default="1700",
                 help="frame numbers")
-ap.add_argument("-o", "--output", required=True,
-                help="Output video location.")
-ap.add_argument("-y", "--yolo", required=True,
+ap.add_argument("-o", "--output", default="highway",
+                help="Output video name.")
+ap.add_argument("-y", "--yolo", default="yolo-coco",
                 help="base path to YOLO directory")
 ap.add_argument("-c", "--confidence", type=float, default=0.5,
                 help="minimum probability to filter weak detections")
@@ -57,8 +74,12 @@ net = cv2.dnn.readNetFromDarknet(configPath, weightsPath)
 # load our input image and grab its spatial dimensions
 frameNumber = int(args["frames"])
 writer = None
-for i in range(1, frameNumber):
-    image = cv2.imread(args["path"] + "/in00" + getFileName(i) + ".jpg")
+totalIoU = 0.0
+numberOfIntersections = 0
+maxIoU = -1
+minIoU = 999999999
+for idx in range(1, frameNumber):
+    image = cv2.imread(args["path"] + "/in00" + getFileName(idx) + ".jpg")
     #clone_img = copy.copy(image)
     #cv2.imshow("Original image", image)
     (H, W) = image.shape[:2]
@@ -124,6 +145,8 @@ for i in range(1, frameNumber):
 
     # ensure at least one detection exists
     if len(idxs) > 0:
+        gt = cv2.imread(args["groundtruth"] + "/gt00" + getFileName(idx) + ".png", 0)
+        gt_contours, gt_hierarchy = cv2.findContours(gt, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         # loop over the indexes we are keeping
         for i in idxs.flatten():
             # extract the bounding box coordinates
@@ -136,6 +159,20 @@ for i in range(1, frameNumber):
             text = "{}: {:.4f}".format(LABELS[classIDs[i]], confidences[i])
             cv2.putText(image, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX,
                         0.5, color, 2)
+            if idx >= 470:
+                for gt_cont in gt_contours:
+                    gt_x, gt_y, gt_w, gt_h = cv2.boundingRect(gt_cont)
+                    intersect = intersection((gt_x, gt_y, gt_w, gt_h), (x, y, w, h))
+                    if len(intersect) > 0:  # means theres an intersection
+                        un = union((gt_x, gt_y, gt_w, gt_h), (x, y, w, h))
+                        currentIoU = (float(intersect[2]) * float(intersect[3])) / (float(un[2]) * float(un[3]))
+                        print("currentIoU : " + str(currentIoU))
+                        totalIoU += currentIoU
+                        numberOfIntersections += 1
+                        if minIoU > currentIoU:
+                            minIoU = currentIoU
+                        if maxIoU < currentIoU:
+                            maxIoU = currentIoU
 
     if writer is None:
         # initialize our video writer
@@ -154,6 +191,12 @@ for i in range(1, frameNumber):
     # write the output frame to disk
     writer.write(image)
 print("[INFO] cleaning up...")
+average = totalIoU / float(numberOfIntersections)
+print("Average : " + str(average))
+print("Total IoU : " + str(totalIoU))
+print("total intersections : " + str(numberOfIntersections))
+print("min IoU :" + str(minIoU))
+print("max IoU :" + str(maxIoU))
 writer.release()
 
     # show the output image
