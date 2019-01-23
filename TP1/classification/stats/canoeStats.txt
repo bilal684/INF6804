@@ -1,0 +1,6 @@
+[INFO] cleaning up...
+Average : 0.18286493899134684
+Total IoU : 137.33156918250148
+total intersections : 751
+min IoU :0.0
+max IoU :0.8717948717948718
