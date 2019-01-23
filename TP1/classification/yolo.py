@@ -7,6 +7,7 @@ import argparse
 import time
 import cv2
 import os
+import heapq
 
 
 def getFileName(n):
@@ -80,7 +81,9 @@ totalIoU = 0.0
 numberOfIntersections = 0
 maxIoU = -1
 minIoU = 999999999
+sortedIoU = []
 for idx in range(1, frameNumber):
+    print(idx)
     image = cv2.imread(args["path"] + "/in00" + getFileName(idx) + ".jpg")
     #clone_img = copy.copy(image)
     #cv2.imshow("Original image", image)
@@ -152,8 +155,12 @@ for idx in range(1, frameNumber):
         # loop over the indexes we are keeping
         for i in idxs.flatten():
             # extract the bounding box coordinates
-            (x, y) = (boxes[i][0], boxes[i][1])
-            (w, h) = (boxes[i][2], boxes[i][3])
+            #(x, y) = (boxes[i][0], boxes[i][1])
+            x = boxes[i][0]
+            y = boxes[i][1]
+            w = boxes[i][2]
+            h = boxes[i][3]
+            #(w, h) = (boxes[i][2], boxes[i][3])
 
             # draw a bounding box rectangle and label on the image
             color = [int(c) for c in COLORS[classIDs[i]]]
@@ -162,19 +169,27 @@ for idx in range(1, frameNumber):
             cv2.putText(image, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX,
                         0.5, color, 2)
             if idx >= int(args["skip"]):
+                bestMatch = []
                 for gt_cont in gt_contours:
                     gt_x, gt_y, gt_w, gt_h = cv2.boundingRect(gt_cont)
                     intersect = intersection((gt_x, gt_y, gt_w, gt_h), (x, y, w, h))
                     if len(intersect) > 0:  # means theres an intersection
                         un = union((gt_x, gt_y, gt_w, gt_h), (x, y, w, h))
                         currentIoU = (float(intersect[2]) * float(intersect[3])) / (float(un[2]) * float(un[3]))
-                        print("currentIoU : " + str(currentIoU))
-                        totalIoU += currentIoU
-                        numberOfIntersections += 1
+                        heapq.heappush(bestMatch, currentIoU)
+                        heapq._heapify_max(bestMatch)
+                        #print("currentIoU : " + str(currentIoU))
+                        #totalIoU += currentIoU
+                        #numberOfIntersections += 1
                         if minIoU > currentIoU:
                             minIoU = currentIoU
                         if maxIoU < currentIoU:
                             maxIoU = currentIoU
+                if len(bestMatch) > 0:
+                    maxInHeap = heapq._heappop_max(bestMatch)
+                    sortedIoU.append(maxInHeap)
+                    totalIoU += maxInHeap
+                    numberOfIntersections += 1
 
     if writer is None:
         # initialize our video writer
@@ -194,6 +209,13 @@ for idx in range(1, frameNumber):
     writer.write(image)
 print("[INFO] cleaning up...")
 average = totalIoU / float(numberOfIntersections)
+sortedIoU.sort()
+median = -1
+if len(sortedIoU) % 2 == 0:
+    median = (sortedIoU[int(len(sortedIoU) / 2)] + sortedIoU[int(len(sortedIoU) / 2) - 1]) / 2.0
+else:
+    median = sortedIoU[int(len(sortedIoU) / 2)]
+print("Median : " + str(median))
 print("Average : " + str(average))
 print("Total IoU : " + str(totalIoU))
 print("total intersections : " + str(numberOfIntersections))

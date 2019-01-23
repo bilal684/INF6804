@@ -7,6 +7,7 @@ import numpy as np
 import cv2
 from skimage.measure import compare_ssim
 import argparse
+import heapq
 import copy
 
 ap = argparse.ArgumentParser()
@@ -17,6 +18,8 @@ ap.add_argument("-f", "--frames", default="1700",
                 help="frame numbers")
 ap.add_argument("-g", "--groundtruth", default="data/highway/groundtruth",
                 help="Ground truth path")
+ap.add_argument("-s", "--skip", default="470",
+                help="skip ground truth to.")
 #ap.add_argument("-o", "--output", required=True,
 #                help="Output video location.")
 
@@ -63,14 +66,15 @@ def processSegmentationBaselineCars():
     numberOfIntersections = 0
     maxIoU = -1
     minIoU = 999999999
+    sortedIoU = []
     for i in range(1, frameNumber):
         frame = cv2.imread(basePathInput + "/in00" + getFileName(i) + ".jpg")
         cv2.imshow("Current frame", frame)
         fgmask = fgbg.apply(frame)
-        fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, kernel)
+        fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel)
         cv2.imshow("After segmentation", fgmask)
         #Compare rectangles of interest GT v.s method using IoU
-        if i >= 470:
+        if i >= int(args["skip"]):
             contours, hierarchy = cv2.findContours(fgmask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             gt = cv2.imread(basePathGT + "/gt00" + getFileName(i) + ".png", 0)
             gt_contours, gt_hierarchy = cv2.findContours(gt, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -86,20 +90,33 @@ def processSegmentationBaselineCars():
             cv2.imshow("Ground Truth", gt)
             for gt_cont in gt_contours:
                 gt_x, gt_y, gt_w, gt_h = cv2.boundingRect(gt_cont)
+                bestMatch = []
                 for cont in contours:
-                    x,y,w,h = cv2.boundingRect(cont)
-                    intersect = intersection((gt_x, gt_y, gt_w, gt_h), (x,y,w,h))
+                    seg_x, seg_y, seg_w, seg_h = cv2.boundingRect(cont)
+                    intersect = intersection((gt_x, gt_y, gt_w, gt_h), (seg_x,seg_y,seg_w,seg_h))
                     if len(intersect) > 0: #means theres an intersection
-                        un = union((gt_x, gt_y, gt_w, gt_h), (x,y,w,h))
+                        un = union((gt_x, gt_y, gt_w, gt_h), (seg_x,seg_y,seg_w,seg_h))
                         currentIoU = (float(intersect[2]) * float(intersect[3])) / (float(un[2]) * float(un[3]))
-                        totalIoU += currentIoU
-                        numberOfIntersections += 1
+                        heapq.heappush(bestMatch, currentIoU)
+                        heapq._heapify_max(bestMatch)
                         if minIoU > currentIoU:
                             minIoU = currentIoU
                         if maxIoU < currentIoU:
                             maxIoU = currentIoU
+                if(len(bestMatch) > 0):
+                    maxInHeap = heapq._heappop_max(bestMatch)
+                    sortedIoU.append(maxInHeap)
+                    totalIoU += maxInHeap
+                    numberOfIntersections += 1
         cv2.waitKey(1)
     average = totalIoU / float(numberOfIntersections)
+    sortedIoU.sort()
+    median = -1
+    if len(sortedIoU) % 2 == 0:
+        median = (sortedIoU[int(len(sortedIoU) / 2)] + sortedIoU[int(len(sortedIoU) / 2) - 1])/2.0
+    else:
+        median = sortedIoU[int(len(sortedIoU)/2)]
+    print("Median : " + str(median))
     print("Average : " + str(average))
     print("Total IoU : " + str(totalIoU))
     print("total intersections : " + str(numberOfIntersections))
