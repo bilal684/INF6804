@@ -53,8 +53,10 @@ ap.add_argument("-c", "--confidence", type=float, default=0.5,
                 help="minimum probability to filter weak detections")
 ap.add_argument("-t", "--threshold", type=float, default=0.3,
                 help="threshold when applyong non-maxima suppression")
-ap.add_argument("-s", "--skip", default="470",
-                help="skip ground truth to.")
+ap.add_argument("-gtf", "--gtfrom", default="470",
+                help="Ground truth from.")
+ap.add_argument("-gtt", "--gtto", default="1700",
+                help="Ground truth to.")
 args = vars(ap.parse_args())
 
 # load the COCO class labels our YOLO model was trained on
@@ -76,6 +78,8 @@ net = cv2.dnn.readNetFromDarknet(configPath, weightsPath)
 
 # load our input image and grab its spatial dimensions
 frameNumber = int(args["frames"])
+gtfrom = int(args["gtfrom"])
+gtto = int(args["gtto"])
 writer = None
 writer_gt = None
 totalIoU = 0.0
@@ -171,7 +175,7 @@ for idx in range(1, frameNumber):
             text = "{}: {:.4f}".format(LABELS[classIDs[i]], confidences[i])
             cv2.putText(image, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX,
                         0.5, color, 2)
-            if idx >= int(args["skip"]):
+            if idx >= gtfrom and idx <= gtto:
                 bestMatch = []
                 for gt_cont in gt_contours:
                     gt_x, gt_y, gt_w, gt_h = cv2.boundingRect(gt_cont)
