@@ -73,9 +73,12 @@ def processSegmentationBaselineCars():
         frame = cv2.imread(basePathInput + "/in00" + getFileName(i) + ".jpg")
         cv2.imshow("Current frame", frame)
         fgmask = fgbg.apply(frame)
-        #fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel)
         fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, kernel)
+        fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_DILATE, kernel)
+        fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, kernel)
+        #fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, kernel)
 
+        #fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, kernel)
         cv2.imshow("After segmentation", fgmask)
         #Compare rectangles of interest GT v.s method using IoU
         if i >= gtfrom and i <= gtto:
