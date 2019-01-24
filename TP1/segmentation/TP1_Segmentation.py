@@ -18,10 +18,10 @@ ap.add_argument("-f", "--frames", default="1700",
                 help="frame numbers")
 ap.add_argument("-g", "--groundtruth", default="data/highway/groundtruth",
                 help="Ground truth path")
-ap.add_argument("-s", "--skip", default="470",
-                help="skip ground truth to.")
-#ap.add_argument("-o", "--output", required=True,
-#                help="Output video location.")
+ap.add_argument("-gtf", "--gtfrom", default="470",
+                help="Ground truth from.")
+ap.add_argument("-gtt", "--gtto", default="1700",
+                help="Ground truth to.")
 
 args = vars(ap.parse_args())
 
@@ -29,6 +29,8 @@ args = vars(ap.parse_args())
 basePathInput = args["path"]
 basePathGT = args["groundtruth"]
 frameNumber = int(args["frames"])
+gtfrom = int(args["gtfrom"])
+gtto = int(args["gtto"])
 
 #Source : https://www.pyimagesearch.com/2014/09/15/python-compare-two-images/
 def getMSE(imageA, imageB):
@@ -76,7 +78,7 @@ def processSegmentationBaselineCars():
 
         cv2.imshow("After segmentation", fgmask)
         #Compare rectangles of interest GT v.s method using IoU
-        if i >= int(args["skip"]):
+        if i >= gtfrom and i <= gtto:
             contours, hierarchy = cv2.findContours(fgmask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             gt = cv2.imread(basePathGT + "/gt00" + getFileName(i) + ".png", 0)
             gt_contours, gt_hierarchy = cv2.findContours(gt, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
