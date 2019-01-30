@@ -3,9 +3,7 @@
 # @authors  : Bilal Itani, Mehdi Kadi
 ###########################################################################################
 
-import numpy as np
 import cv2
-from skimage.measure import compare_ssim
 import argparse
 import heapq
 import copy
@@ -31,24 +29,6 @@ basePathGT = args["groundtruth"]
 frameNumber = int(args["frames"])
 gtfrom = int(args["gtfrom"])
 gtto = int(args["gtto"])
-
-#Source : https://www.pyimagesearch.com/2014/09/15/python-compare-two-images/
-def getMSE(imageA, imageB):
-    # the 'Mean Squared Error' between the two images is the
-    # sum of the squared difference between the two images;
-    # NOTE: the two images must have the same dimension
-    err = np.sum((imageA.astype("float") - imageB.astype("float")) ** 2)
-    err /= float(imageA.shape[0] * imageA.shape[1])
-
-    # return the MSE, the lower the error, the more "similar"
-    # the two images are
-    return err
-
-#https://www.pyimagesearch.com/2017/06/19/image-difference-with-opencv-and-python/
-def getSSIM(imageA, imageB):
-    (score, diff) = compare_ssim(imageA, imageB, full=True)
-    #diff = (diff * 255).astype("uint8")
-    return score
 
 def getFileName(n):
     if n < 10:
