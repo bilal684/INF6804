@@ -1,13 +1,15 @@
 import cv2
 import argparse
-
+import dlib
+import time
+import sys
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-p", "--path", default="data/face",
                 help="base path for the dataset to analyze")
 ap.add_argument("-f", "--frames", default="415",
                 help="frame numbers")
-ap.add_argument("-m", "--method", default="lbp",
+ap.add_argument("-m", "--method", default="bilal",
                 help="Method to use [lbp / hog]")
 ap.add_argument("-gt", "--groundtruth", default="data/face/gt/groundtruth.txt",
                 help="Method to use [lbp / hog]")
@@ -37,7 +39,7 @@ def getGroundTruthRectangle(frameNumber):
     data = gtFile[frameNumber].split(',')
     return int(float(data[0])), int(float(data[1])), int(float(data[2])), int(float(data[3]))
 
-def detect_faces(f_cascade, colored_img, scaleFactor=1.1):
+def detect_faces_LBP(f_cascade, colored_img, scaleFactor=1.1):
     # just making a copy of image passed, so that passed image is not changed
     img_copy = colored_img.copy()
 
@@ -60,6 +62,47 @@ def detect_faces(f_cascade, colored_img, scaleFactor=1.1):
         rectH = h
     return img_copy, rectX, rectY, rectW, rectH
 
+
+#source : https://github.com/spmallick/learnopencv/blob/master/FaceDetectionComparison/face_detection_dlib_hog.py
+def detectFaceDlibHog(detector, frame, inHeight=400, inWidth=0):
+    frameDlibHog = frame.copy()
+    frameHeight = frameDlibHog.shape[0]
+    frameWidth = frameDlibHog.shape[1]
+    if not inWidth:
+        inWidth = int((frameWidth / frameHeight)*inHeight)
+
+    scaleHeight = frameHeight / inHeight
+    scaleWidth = frameWidth / inWidth
+
+    frameDlibHogSmall = cv2.resize(frameDlibHog, (inWidth, inHeight))
+
+    frameDlibHogSmall = cv2.cvtColor(frameDlibHogSmall, cv2.COLOR_BGR2RGB)
+    faceRects = detector(frameDlibHogSmall, 0)
+    #print(frameWidth, frameHeight, inWidth, inHeight)
+    bboxes = []
+    for faceRect in faceRects:
+        cvRect = [int(faceRect.left()*scaleWidth), int(faceRect.top()*scaleHeight), int(faceRect.right()*scaleWidth) - int(faceRect.left()*scaleWidth),
+                  int(faceRect.bottom()*scaleHeight) - int(faceRect.top()*scaleHeight)]
+        bboxes.append(cvRect)
+        cv2.rectangle(frameDlibHog, (cvRect[0], cvRect[1]), (cvRect[2] + cvRect[0], cvRect[3] + cvRect[1]), (0, 255, 0), int(round(frameHeight/150)), 4)
+        print(str(cvRect[0]) + "\t" + str(cvRect[1]) + "\t" + str(cvRect[2]) + "\t" + str(cvRect[3]))
+    return frameDlibHog, bboxes
+
+
+def processHOG():
+    hogFaceDetector = dlib.get_frontal_face_detector()
+    readGroundTruth()
+    totalIoU = 0.0
+    maxIoU = -1
+    minIoU = 999999999
+    totalDetect = 0
+    sortedIoU = []
+    for i in range(1, int(args["frames"])):
+        frame = cv2.imread("data/face" + "/" + getFileName(i) + ".jpg")
+        outDlibHog, bboxes = detectFaceDlibHog(hogFaceDetector, frame)
+        cv2.imshow("Face Detection Comparison", outDlibHog)
+        cv2.waitKey(10)
+
 #From : https://github.com/informramiz/Face-Detection-OpenCV
 def processLBP():
     lbp_face_cascade = cv2.CascadeClassifier('data/lbpcascade_frontalface.xml')
@@ -71,7 +114,7 @@ def processLBP():
     sortedIoU = []
     for i in range(1, int(args["frames"])):
         frame = cv2.imread("data/face" + "/" + getFileName(i) + ".jpg")
-        faces_detected_img, rectX, rectY, rectW, rectH = detect_faces(lbp_face_cascade, frame)
+        faces_detected_img, rectX, rectY, rectW, rectH = detect_faces_LBP(lbp_face_cascade, frame)
         #print(str(rectX))
         if rectX is not None and rectY is not None and rectW is not None and rectH is not None:
             x_gt, y_gt, gt_width, gt_height = getGroundTruthRectangle(i - 1)
@@ -119,3 +162,5 @@ def intersection(a, b):
 
 if args["method"] == "lbp":
     processLBP()
+else:
+    processHOG()
