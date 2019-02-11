@@ -64,7 +64,8 @@ def detect_faces_LBP(f_cascade, colored_img, scaleFactor=1.1):
 
 
 #source : https://github.com/spmallick/learnopencv/blob/master/FaceDetectionComparison/face_detection_dlib_hog.py
-def detectFaceDlibHog(detector, frame, inHeight=400, inWidth=0):
+def detectFaceDlibHog(detector, frame, inHeight=1000, inWidth=0):
+    #TODO:READ AND DRAW GROUNDTRUTH, THAT IS SHADY AF.
     frameDlibHog = frame.copy()
     frameHeight = frameDlibHog.shape[0]
     frameWidth = frameDlibHog.shape[1]
@@ -132,6 +133,7 @@ def processHOG():
     print("max IoU :" + str(maxIoU))
 #From : https://github.com/informramiz/Face-Detection-OpenCV
 def processLBP():
+    #TODO:READ AND DRAW GROUNDTRUTH, THAT IS SHADY AF.
     lbp_face_cascade = cv2.CascadeClassifier('data/lbpcascade_frontalface.xml')
     readGroundTruth()
     totalIoU = 0.0
