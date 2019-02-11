@@ -98,7 +98,7 @@ def processHOG():
     totalDetect = 0
     sortedIoU = []
     for i in range(1, int(args["frames"])):
-        frame = cv2.imread("data/face" + "/" + getFileName(i) + ".jpg")
+        frame = cv2.imread(args["path"] + "/" + getFileName(i) + ".jpg")
         outDlibHog, bboxes = detectFaceDlibHog(hogFaceDetector, frame)
         if len(bboxes) > 0 :
             x_gt, y_gt, gt_width, gt_height = getGroundTruthRectangle(i - 1)
@@ -140,7 +140,7 @@ def processLBP():
     totalDetect = 0
     sortedIoU = []
     for i in range(1, int(args["frames"])):
-        frame = cv2.imread("data/face" + "/" + getFileName(i) + ".jpg")
+        frame = cv2.imread(args["path"] + "/" + getFileName(i) + ".jpg")
         faces_detected_img, rectX, rectY, rectW, rectH = detect_faces_LBP(lbp_face_cascade, frame)
         #print(str(rectX))
         if rectX is not None and rectY is not None and rectW is not None and rectH is not None:
