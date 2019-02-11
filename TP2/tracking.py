@@ -101,28 +101,6 @@ def processLBP():
     print("min IoU :" + str(minIoU))
     print("max IoU :" + str(maxIoU))
 
-    #global gtFile
-    #frameNumber = int(args["frames"])
-    #readGroundTruth()
-
-    #for i in range(2, frameNumber):
-    #    x_init, y_init, width, height = getGroundTruthRectangle(i - 1)
-    #    frame = cv2.imread(args["path"] + "/" + getFileName(i) + ".jpg")
-        #gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    #    cv2.rectangle(frame, (x_init, y_init), (x_init + width, y_init + height), (0, 255, 0), 1)
-    #    cropped = frame[y_init:y_init+height, x_init:x_init+width]
-
-    #    cv2.imshow("frame", frame)
-    #    cv2.imshow("cropped", cropped)
-        #cv2.imshow("frame", frame)
-    #    cv2.waitKey(10)
-    #frame = cv2.imread(basepath + "/00000001.jpg")
-
-    #cv2.rectangle(frame, (130, 115), (130 + 85, 115 + 99), (0, 255, 0), 1)
-    #cv2.imshow("frame 0", frame)
-    #cv2.waitKey(0)
-
-
 def union(a, b):
     x = min(a[0], b[0])
     y = min(a[1], b[1])
