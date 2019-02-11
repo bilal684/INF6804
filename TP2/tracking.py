@@ -9,7 +9,7 @@ ap.add_argument("-p", "--path", default="data/face",
                 help="base path for the dataset to analyze")
 ap.add_argument("-f", "--frames", default="415",
                 help="frame numbers")
-ap.add_argument("-m", "--method", default="bilal",
+ap.add_argument("-m", "--method", default="lbp",
                 help="Method to use [lbp / hog]")
 ap.add_argument("-gt", "--groundtruth", default="data/face/gt/groundtruth.txt",
                 help="Method to use [lbp / hog]")
@@ -100,9 +100,36 @@ def processHOG():
     for i in range(1, int(args["frames"])):
         frame = cv2.imread("data/face" + "/" + getFileName(i) + ".jpg")
         outDlibHog, bboxes = detectFaceDlibHog(hogFaceDetector, frame)
-        cv2.imshow("Face Detection Comparison", outDlibHog)
+        if len(bboxes) > 0 :
+            x_gt, y_gt, gt_width, gt_height = getGroundTruthRectangle(i - 1)
+            intersect = intersection((x_gt, y_gt, gt_width, gt_height), (bboxes[0][0], bboxes[0][1], bboxes[0][2], bboxes[0][3]))
+            if len(intersect) > 0:
+                un = union((x_gt, y_gt, gt_width, gt_height), (bboxes[0][0], bboxes[0][1], bboxes[0][2], bboxes[0][3]))
+                currentIoU = (float(intersect[2]) * float(intersect[3])) / (float(un[2]) * float(un[3]))
+                if minIoU > currentIoU:
+                    minIoU = currentIoU
+                if maxIoU < currentIoU:
+                    maxIoU = currentIoU
+                totalIoU += currentIoU
+                sortedIoU.append(currentIoU)
+        else:
+            sortedIoU.append(0.0)
+        totalDetect += 1
+        cv2.imshow("DLIB HOG", outDlibHog)
         cv2.waitKey(10)
-
+    average = totalIoU / float(totalDetect)
+    median = -1
+    sortedIoU.sort()
+    if len(sortedIoU) % 2 == 0:
+        median = (sortedIoU[int(len(sortedIoU) / 2)] + sortedIoU[int(len(sortedIoU) / 2) - 1]) / 2.0
+    else:
+        median = sortedIoU[int(len(sortedIoU) / 2)]
+    print("Median : " + str(median))
+    print("Average : " + str(average))
+    print("Total IoU : " + str(totalIoU))
+    print("total intersections : " + str(totalDetect))
+    print("min IoU :" + str(minIoU))
+    print("max IoU :" + str(maxIoU))
 #From : https://github.com/informramiz/Face-Detection-OpenCV
 def processLBP():
     lbp_face_cascade = cv2.CascadeClassifier('data/lbpcascade_frontalface.xml')
@@ -128,11 +155,14 @@ def processLBP():
                     maxIoU = currentIoU
                 totalIoU += currentIoU
                 sortedIoU.append(currentIoU)
+        else:
+            sortedIoU.append(0.0)
         totalDetect += 1
         cv2.imshow("LBP_Experienced", faces_detected_img)
         cv2.waitKey(10)
     average = totalIoU / float(totalDetect)
     median = -1
+    sortedIoU.sort()
     if len(sortedIoU) % 2 == 0:
         median = (sortedIoU[int(len(sortedIoU) / 2)] + sortedIoU[int(len(sortedIoU) / 2) - 1]) / 2.0
     else:
