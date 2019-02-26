@@ -1,0 +1,79 @@
+face - LBP
+
+Median IoU all frames: 0.6390977443609023
+Median IoU deteted frames: 0.6430065990664735
+Average IoU all frames : 0.561203118271656
+Average IoU detected frames : 0.6487445517624992
+Total IoU : 232.89929408273724
+total detections : 359
+total frames : 415
+min IoU :0.51361083984375
+max IoU :0.7468553459119497
+----------------------------------------------------------------
+
+face - HOG
+
+Median IoU all frames: 0.6054216867469879
+Median IoU deteted frames: 0.7955576925149122
+Average IoU all frames : 0.3918963364430682
+Average IoU detected frames : 0.7819085558840063
+Total IoU : 162.63697962387332
+total detections : 208
+total frames : 415
+min IoU :0.6054216867469879
+max IoU :0.8585858585858586
+----------------------------------------------------------------
+
+sunshade - LBP
+
+Median IoU all frames: 0.0
+Median IoU deteted frames: 0.6243751007901952
+Average IoU all frames : 0.2649217556823867
+Average IoU detected frames : 0.6157640807752772
+Total IoU : 45.56654197737051
+total detections : 74
+total frames : 172
+min IoU :0.4472527472527473
+max IoU :0.7346938775510204
+
+----------------------------------------------------------------
+
+sunshade - HOG
+
+Median IoU all frames: 0.4716981132075472
+Median IoU deteted frames: 0.4736961225931814
+Average IoU all frames : 0.46036001768383344
+Average IoU detected frames : 0.47699953639529735
+Total IoU : 79.18192304161936
+total detections : 166
+total frames : 172
+min IoU :0.281305114638448
+max IoU :0.6486486486486487
+
+----------------------------------------------------------------
+
+Moving - LBP
+
+Median IoU all frames: 0.0
+Median IoU deteted frames: 0.6818181818181818
+Average IoU all frames : 0.26455521366429885
+Average IoU detected frames : 0.6811398940044617
+Total IoU : 150.53191657498604
+total detections : 221
+total frames : 569
+min IoU :0.46913116907487334
+max IoU :0.825
+
+----------------------------------------------------------------
+
+Moving - HOG
+
+Median IoU all frames: 0.0
+Median IoU deteted frames: 0.8215896721203324
+Average IoU all frames : 0.34477796330498384
+Average IoU detected frames : 0.8106556244650239
+Total IoU : 196.1786611205358
+total detections : 242
+total frames : 569
+min IoU :0.4127617148554337
+max IoU :0.9772727272727273
