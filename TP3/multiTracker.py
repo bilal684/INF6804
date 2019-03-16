@@ -6,7 +6,6 @@ from __future__ import print_function
 import sys
 import cv2
 from random import randint
-import imutils
 
 trackerTypes = ['BOOSTING', 'MIL', 'KCF','TLD', 'MEDIANFLOW', 'GOTURN', 'MOSSE', 'CSRT']
 
@@ -47,14 +46,14 @@ if __name__ == '__main__':
   trackerType = "CSRT"      
 
   # Set video to load
-  videoPath = "video.mp4"
+  videoPath = "data/video.mp4"
   
   # Create a video capture object to read videos
   cap = cv2.VideoCapture(videoPath)
  
   # Read first frame
   success, frame = cap.read()
-  frame = imutils.resize(frame, width=800)
+  #frame = imutils.resize(frame, width=800)
   # quit if unable to read the video file
   if not success:
     print('Failed to read video')
@@ -103,9 +102,9 @@ if __name__ == '__main__':
   # Process video and track objects
   while cap.isOpened():
     success, frame = cap.read()
-    frame = imutils.resize(frame, width=800)
     if not success:
       break
+    #frame = imutils.resize(frame, width=800)
     
     # get updated location of objects in subsequent frames
     success, boxes = multiTracker.update(frame)
