@@ -48,176 +48,6 @@ def getGroundTruthRectangle(frameNumber):
     else:
         return int(float(data[0])), int(float(data[1])), int(float(data[2])), int(float(data[3]))
 
-def detect_faces_LBP(f_cascade, colored_img, scaleFactor=1.1):
-    # just making a copy of image passed, so that passed image is not changed
-    img_copy = colored_img.copy()
-
-    # convert the test image to gray image as opencv face detector expects gray images
-    gray = cv2.cvtColor(img_copy, cv2.COLOR_BGR2GRAY)
-
-    # let's detect multiscale (some images may be closer to camera than others) images
-    faces = f_cascade.detectMultiScale(gray, scaleFactor=scaleFactor, minNeighbors=5);
-
-    rectX = []
-    rectY = []
-    rectW = []
-    rectH = []
-    # go over list of faces and draw them as rectangles on original colored img
-    for (x, y, w, h) in faces:
-        cv2.rectangle(img_copy, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        rectX.append(x)
-        rectY.append(y)
-        rectW.append(w)
-        rectH.append(h)
-    return img_copy, rectX, rectY, rectW, rectH
-
-
-#source : https://github.com/spmallick/learnopencv/blob/master/FaceDetectionComparison/face_detection_dlib_hog.py
-def detectFaceDlibHog(detector, frame, inHeight=1000, inWidth=0):
-    #TODO:READ AND DRAW GROUNDTRUTH, THAT IS SHADY AF.
-    frameDlibHog = frame.copy()
-    frameHeight = frameDlibHog.shape[0]
-    frameWidth = frameDlibHog.shape[1]
-    if not inWidth:
-        inWidth = int((frameWidth / frameHeight)*inHeight)
-
-    scaleHeight = frameHeight / inHeight
-    scaleWidth = frameWidth / inWidth
-
-    frameDlibHogSmall = cv2.resize(frameDlibHog, (inWidth, inHeight))
-
-    frameDlibHogSmall = cv2.cvtColor(frameDlibHogSmall, cv2.COLOR_BGR2RGB)
-    faceRects = detector(frameDlibHogSmall, 0)
-    #print(frameWidth, frameHeight, inWidth, inHeight)
-    bboxes = []
-    for faceRect in faceRects:
-        cvRect = [int(faceRect.left()*scaleWidth), int(faceRect.top()*scaleHeight), int(faceRect.right()*scaleWidth) - int(faceRect.left()*scaleWidth),
-                  int(faceRect.bottom()*scaleHeight) - int(faceRect.top()*scaleHeight)]
-        bboxes.append(cvRect)
-        cv2.rectangle(frameDlibHog, (cvRect[0], cvRect[1]), (cvRect[2] + cvRect[0], cvRect[3] + cvRect[1]), (0, 255, 0), int(round(frameHeight/150)), 4)
-        #print(str(cvRect[0]) + "\t" + str(cvRect[1]) + "\t" + str(cvRect[2]) + "\t" + str(cvRect[3]))
-    return frameDlibHog, bboxes
-
-
-def processHOG():
-    hogFaceDetector = dlib.get_frontal_face_detector()
-    readGroundTruth()
-    totalIoU = 0.0
-    maxIoU = -1
-    minIoU = 999999999
-    totalDetect = 0
-    sortedIoUAllFrames = []
-    sortedIoUWhenDetected = []
-    for i in range(1, int(args["frames"])):
-        frame = cv2.imread(args["path"] + "/" + getFileName(i) + ".jpg")
-        outDlibHog, bboxes = detectFaceDlibHog(hogFaceDetector, frame)
-        x_gt, y_gt, gt_width, gt_height = getGroundTruthRectangle(i - 1)
-        if len(bboxes) > 0 :
-            intersect = intersection((x_gt, y_gt, gt_width, gt_height), (bboxes[0][0], bboxes[0][1], bboxes[0][2], bboxes[0][3]))
-            if len(intersect) > 0:
-                un = union((x_gt, y_gt, gt_width, gt_height), (bboxes[0][0], bboxes[0][1], bboxes[0][2], bboxes[0][3]))
-                currentIoU = (float(intersect[2]) * float(intersect[3])) / (float(un[2]) * float(un[3]))
-                if minIoU > currentIoU:
-                    minIoU = currentIoU
-                if maxIoU < currentIoU:
-                    maxIoU = currentIoU
-                totalIoU += currentIoU
-                sortedIoUAllFrames.append(currentIoU)
-                sortedIoUWhenDetected.append(currentIoU)
-                totalDetect += 1
-        else:
-            sortedIoUAllFrames.append(0.0)
-        #totalDetect += 1
-        cv2.rectangle(outDlibHog, (x_gt, y_gt), (x_gt + gt_width, y_gt + gt_height), (255, 0, 0),
-                      4)  # blue : ground truth
-        cv2.imshow("HOG", outDlibHog)
-        cv2.waitKey(10)
-    averageAllFrames = totalIoU / float(int(args["frames"]))
-    averageDetectedFrames = totalIoU / float(totalDetect)
-    medianAllFrames = -1
-    medianDetectedFrames = -1
-    sortedIoUAllFrames.sort()
-    sortedIoUWhenDetected.sort()
-    if len(sortedIoUAllFrames) % 2 == 0:
-        medianAllFrames = (sortedIoUAllFrames[int(len(sortedIoUAllFrames) / 2)] + sortedIoUAllFrames[int(len(sortedIoUAllFrames) / 2) - 1]) / 2.0
-    else:
-        medianAllFrames = sortedIoUAllFrames[int(len(sortedIoUAllFrames) / 2)]
-
-    if len(sortedIoUWhenDetected) % 2 == 0:
-        medianDetectedFrames = (sortedIoUWhenDetected[int(len(sortedIoUWhenDetected) / 2)] + sortedIoUWhenDetected[int(len(sortedIoUWhenDetected) / 2) - 1]) / 2.0
-    else:
-        medianDetectedFrames = sortedIoUWhenDetected[int(len(sortedIoUWhenDetected) / 2)]
-    print("Median IoU all frames: " + str(medianAllFrames))
-    print("Median IoU deteted frames: " + str(medianDetectedFrames))
-    print("Average IoU all frames : " + str(averageAllFrames))
-    print("Average IoU detected frames : " + str(averageDetectedFrames))
-    print("Total IoU : " + str(totalIoU))
-    print("total detections : " + str(totalDetect))
-    print("total frames : " + args["frames"])
-    print("min IoU :" + str(minIoU))
-    print("max IoU :" + str(maxIoU))
-#From : https://github.com/informramiz/Face-Detection-OpenCV
-def processLBP():
-    #TODO:READ AND DRAW GROUNDTRUTH, THAT IS SHADY AF.
-    lbp_face_cascade = cv2.CascadeClassifier('data/lbpcascade_frontalface.xml')
-    readGroundTruth()
-    totalIoU = 0.0
-    maxIoU = -1
-    minIoU = 999999999
-    totalDetect = 0
-    sortedIoUAllFrames = []
-    sortedIoUWhenDetected = []
-    for i in range(1, int(args["frames"])):
-        frame = cv2.imread(args["path"] + "/" + getFileName(i) + ".jpg")
-        faces_detected_img, rectX, rectY, rectW, rectH = detect_faces_LBP(lbp_face_cascade, frame)
-        x_gt, y_gt, gt_width, gt_height = getGroundTruthRectangle(i - 1)
-        #print(str(rectX))
-        if len(rectX) > 0 :
-            for j in range(0, len(rectX)):
-                intersect = intersection((x_gt, y_gt, gt_width, gt_height), (rectX[j], rectY[j], rectW[j], rectH[j]))
-                if len(intersect) > 0: #theres an intersection
-                    un = union((x_gt, y_gt, gt_width, gt_height), (rectX[j], rectY[j], rectW[j], rectH[j]))
-                    currentIoU = (float(intersect[2]) * float(intersect[3])) / (float(un[2]) * float(un[3]))
-                    if minIoU > currentIoU:
-                        minIoU = currentIoU
-                    if maxIoU < currentIoU:
-                        maxIoU = currentIoU
-                    totalIoU += currentIoU
-                    sortedIoUAllFrames.append(currentIoU)
-                    sortedIoUWhenDetected.append(currentIoU)
-                    totalDetect += 1
-                    break
-        else:
-            sortedIoUAllFrames.append(0.0)
-        cv2.rectangle(faces_detected_img, (x_gt, y_gt), (x_gt + gt_width, y_gt + gt_height), (255, 0, 0),
-                      4)  # blue : ground truth
-        cv2.imshow("LBP", faces_detected_img)
-        cv2.waitKey(10)
-    averageAllFrames = totalIoU / float(int(args["frames"]))
-    averageDetectedFrames = totalIoU / float(totalDetect)
-    medianAllFrames = -1
-    medianDetectedFrames = -1
-    sortedIoUAllFrames.sort()
-    sortedIoUWhenDetected.sort()
-    if len(sortedIoUAllFrames) % 2 == 0:
-        medianAllFrames = (sortedIoUAllFrames[int(len(sortedIoUAllFrames) / 2)] + sortedIoUAllFrames[int(len(sortedIoUAllFrames) / 2) - 1]) / 2.0
-    else:
-        medianAllFrames = sortedIoUAllFrames[int(len(sortedIoUAllFrames) / 2)]
-
-    if len(sortedIoUWhenDetected) % 2 == 0:
-        medianDetectedFrames = (sortedIoUWhenDetected[int(len(sortedIoUWhenDetected) / 2)] + sortedIoUWhenDetected[int(len(sortedIoUWhenDetected) / 2) - 1]) / 2.0
-    else:
-        medianDetectedFrames = sortedIoUWhenDetected[int(len(sortedIoUWhenDetected) / 2)]
-    print("Median IoU all frames: " + str(medianAllFrames))
-    print("Median IoU deteted frames: " + str(medianDetectedFrames))
-    print("Average IoU all frames : " + str(averageAllFrames))
-    print("Average IoU detected frames : " + str(averageDetectedFrames))
-    print("Total IoU : " + str(totalIoU))
-    print("total detections : " + str(totalDetect))
-    print("total frames : " + args["frames"])
-    print("min IoU :" + str(minIoU))
-    print("max IoU :" + str(maxIoU))
-
 def union(a, b):
     x = min(a[0], b[0])
     y = min(a[1], b[1])
@@ -276,8 +106,73 @@ def processCupVideoAnalysis():
 
 
 def evaluateMethod():
-    print("kek")
+    #print("kek")
+    readGroundTruth()
+    x_gt_init, y_gt_init, gt_init_width, gt_init_height = getGroundTruthRectangle(0)
+    bbox = (x_gt_init, y_gt_init, gt_init_width, gt_init_height)
+    color = (255,0,0)
+    print('Selected bounding box {}'.format(bbox))
+    totalIoU = 0.0
+    maxIoU = -1
+    minIoU = 999999999
+    totalDetect = 1
+    sortedIoUAllFrames = []
+    sortedIoUWhenDetected = []
+    frame = cv2.imread(args["path"] + "/" + getFileName(1) + ".jpg")
+    multiTracker = cv2.MultiTracker_create()
+    multiTracker.add(cv2.TrackerCSRT_create(), frame, bbox)
 
+    for i in range(2, int(args["frames"])):
+        frame = cv2.imread(args["path"] + "/" + getFileName(i) + ".jpg")
+        success, boxes = multiTracker.update(frame)
+        #for newbox in enumerate(boxes):
+        p1 = (int(boxes[0][0]), int(boxes[0][1]))
+        p2 = (int(boxes[0][0] + boxes[0][2]), int(boxes[0][1] + boxes[0][3]))
+        x_gt, y_gt, gt_width, gt_height = getGroundTruthRectangle(i - 1)
+
+        intersect = intersection((x_gt, y_gt, gt_width, gt_height), (boxes[0][0], boxes[0][1], boxes[0][2], boxes[0][3]))
+        if len(intersect) > 0:
+            un = union((x_gt, y_gt, gt_width, gt_height), (boxes[0][0], boxes[0][1], boxes[0][2], boxes[0][3]))
+            currentIoU = (float(intersect[2]) * float(intersect[3])) / (float(un[2]) * float(un[3]))
+            if minIoU > currentIoU:
+                minIoU = currentIoU
+            if maxIoU < currentIoU:
+                maxIoU = currentIoU
+            totalIoU += currentIoU
+            sortedIoUAllFrames.append(currentIoU)
+            sortedIoUWhenDetected.append(currentIoU)
+            totalDetect += 1
+        else:
+            sortedIoUAllFrames.append(0.0)
+        cv2.rectangle(frame, p1, p2, color, 2, 1)
+        cv2.rectangle(frame, (x_gt, y_gt), (x_gt + gt_width, y_gt + gt_height), (0,255,0), 4)
+        cv2.imshow('MultiTracker', frame)
+        if cv2.waitKey(1) & 0xFF == 27:  # Esc pressed
+            break
+    averageAllFrames = totalIoU / float(int(args["frames"]))
+    averageDetectedFrames = totalIoU / float(totalDetect)
+    medianAllFrames = -1
+    medianDetectedFrames = -1
+    sortedIoUAllFrames.sort()
+    sortedIoUWhenDetected.sort()
+    if len(sortedIoUAllFrames) % 2 == 0:
+        medianAllFrames = (sortedIoUAllFrames[int(len(sortedIoUAllFrames) / 2)] + sortedIoUAllFrames[int(len(sortedIoUAllFrames) / 2) - 1]) / 2.0
+    else:
+        medianAllFrames = sortedIoUAllFrames[int(len(sortedIoUAllFrames) / 2)]
+
+    if len(sortedIoUWhenDetected) % 2 == 0:
+        medianDetectedFrames = (sortedIoUWhenDetected[int(len(sortedIoUWhenDetected) / 2)] + sortedIoUWhenDetected[int(len(sortedIoUWhenDetected) / 2) - 1]) / 2.0
+    else:
+        medianDetectedFrames = sortedIoUWhenDetected[int(len(sortedIoUWhenDetected) / 2)]
+    print("Median IoU all frames: " + str(medianAllFrames))
+    print("Median IoU deteted frames: " + str(medianDetectedFrames))
+    print("Average IoU all frames : " + str(averageAllFrames))
+    print("Average IoU detected frames : " + str(averageDetectedFrames))
+    print("Total IoU : " + str(totalIoU))
+    print("total detections : " + str(totalDetect))
+    print("total frames : " + args["frames"])
+    print("min IoU :" + str(minIoU))
+    print("max IoU :" + str(maxIoU))
 
 if args["video"] is not None:
     processCupVideoAnalysis()
