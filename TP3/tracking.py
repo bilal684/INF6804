@@ -115,7 +115,7 @@ def evaluateMethod():
     totalIoU = 0.0
     maxIoU = -1
     minIoU = 999999999
-    totalDetect = 1
+    totalDetect = 2
     sortedIoUAllFrames = []
     sortedIoUWhenDetected = []
     frame = cv2.imread(args["path"] + "/" + getFileName(1) + ".jpg")
