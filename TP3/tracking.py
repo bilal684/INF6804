@@ -1,10 +1,3 @@
-#import cv2
-#import argparse
-#import dlib
-#import time
-#import sys
-
-#from __future__ import print_function
 import sys
 import cv2
 import argparse
@@ -106,7 +99,6 @@ def processCupVideoAnalysis():
 
 
 def evaluateMethod():
-    #print("kek")
     readGroundTruth()
     x_gt_init, y_gt_init, gt_init_width, gt_init_height = getGroundTruthRectangle(0)
     bbox = (x_gt_init, y_gt_init, gt_init_width, gt_init_height)
@@ -146,7 +138,7 @@ def evaluateMethod():
             sortedIoUAllFrames.append(0.0)
         cv2.rectangle(frame, p1, p2, color, 2, 1)
         cv2.rectangle(frame, (x_gt, y_gt), (x_gt + gt_width, y_gt + gt_height), (0,255,0), 4)
-        cv2.imshow('MultiTracker', frame)
+        cv2.imshow('CSRT', frame)
         if cv2.waitKey(1) & 0xFF == 27:  # Esc pressed
             break
     averageAllFrames = totalIoU / float(int(args["frames"]))
