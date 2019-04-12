@@ -117,7 +117,6 @@ def evaluateMethod():
     for i in range(2, int(args["frames"])):
         frame = cv2.imread(args["path"] + "/" + getFileName(i) + ".jpg")
         success, boxes = multiTracker.update(frame)
-        #for newbox in enumerate(boxes):
         p1 = (int(boxes[0][0]), int(boxes[0][1]))
         p2 = (int(boxes[0][0] + boxes[0][2]), int(boxes[0][1] + boxes[0][3]))
         x_gt, y_gt, gt_width, gt_height = getGroundTruthRectangle(i - 1)
